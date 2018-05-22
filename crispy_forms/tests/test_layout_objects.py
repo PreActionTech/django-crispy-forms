@@ -184,14 +184,12 @@ class TestBootstrapLayoutObjects(object):
             assert dom.count(parse_html('<span class="add-on">#</span>')) == 1
             assert dom.count(parse_html('<span class="add-on">$</span>')) == 1
 
-        if settings.CRISPY_TEMPLATE_PACK in ['bootstrap3', 'bootstrap4']:
+        if settings.CRISPY_TEMPLATE_PACK == 'bootstrap3':
             assert html.count('<span class="input-group-addon">@</span>') == 1
             assert html.count(
                 '<span class="input-group-addon">gmail.com</span>') == 1
             assert html.count('<span class="input-group-addon">#</span>') == 1
             assert html.count('<span class="input-group-addon">$</span>') == 1
-
-        if settings.CRISPY_TEMPLATE_PACK == 'bootstrap3':
             test_form.helper.layout = Layout(
                 PrependedAppendedText('email', '@', 'gmail.com',
                                       css_class='input-lg'), )
@@ -201,13 +199,18 @@ class TestBootstrapLayoutObjects(object):
             assert contains_partial(html, '<span class="input-group-addon input-lg"/>')
 
         if settings.CRISPY_TEMPLATE_PACK == 'bootstrap4':
+            assert html.count('<span class="input-group-text">@</span>') == 1
+            assert html.count(
+                '<span class="input-group-text">gmail.com</span>') == 1
+            assert html.count('<span class="input-group-text">#</span>') == 1
+            assert html.count('<span class="input-group-text">$</span>') == 1
             test_form.helper.layout = Layout(
                 PrependedAppendedText('email', '@', 'gmail.com',
                                       css_class='form-control-lg'), )
             html = render_crispy_form(test_form)
 
             assert 'class="form-control-lg' in html
-            assert contains_partial(html, '<span class="input-group-addon"/>')
+            assert contains_partial(html, '<span class="input-group-text"/>')
 
     def test_inline_radios(self, settings):
         test_form = CheckboxesSampleForm()
@@ -246,10 +249,14 @@ class TestBootstrapLayoutObjects(object):
             assert html.count('<div class="accordion"') == 1
             assert html.count('<div class="accordion-group">') == 2
             assert html.count('<div class="accordion-heading">') == 2
-        else:
+        elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap3':
             assert html.count('<div class="panel panel-default"') == 2
             assert html.count('<div class="panel-group"') == 1
             assert html.count('<div class="panel-heading">') == 2
+        elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap4':
+            assert html.count('<div id="accordion"') == 1
+            assert html.count('<div class="card mb-2"') == 2
+            assert html.count('<div class="card-header"') == 2
 
         assert html.count('<div id="one"') == 1
         assert html.count('<div id="two"') == 1
@@ -274,11 +281,13 @@ class TestBootstrapLayoutObjects(object):
         html = render_crispy_form(test_form)
 
         if settings.CRISPY_TEMPLATE_PACK == 'bootstrap':
-            accordion_class = "accordion-body"
-        else:
-            accordion_class = "panel-collapse"
+            accordion_class = "accordion-body collapse in"
+        elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap3':
+            accordion_class = "panel-collapse collapse in"
+        elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap4':
+            accordion_class = "collapse show"
 
-        assert html.count('<div id="one" class="%s collapse in"' % accordion_class) == 1
+        assert html.count('<div id="one" class="%s"' % accordion_class) == 1
 
         test_form.helper.layout = Layout(
             Accordion(
@@ -436,8 +445,10 @@ class TestBootstrapLayoutObjects(object):
 
         if settings.CRISPY_TEMPLATE_PACK == 'bootstrap':
             assert html.count('class="input-append"') == 1
-        elif settings.CRISPY_TEMPLATE_PACK in ['bootstrap3', 'bootstrap4']:
+        elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap3':
             assert html.count('class="input-group-btn') == 1
+        elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap4':
+            assert html.count('class="input-group-append') == 1
 
     def test_hidden_fields(self):
         form = SampleForm()
@@ -477,3 +488,23 @@ class TestBootstrapLayoutObjects(object):
                 assert html.count('checkbox-inline"') == 3
             elif settings.CRISPY_TEMPLATE_PACK == 'bootstrap4':
                 assert html.count('form-check-inline"') == 3
+
+    def test_multiple_checkboxes_unique_ids(self):
+        test_form = CheckboxesSampleForm()
+        html = render_crispy_form(test_form)
+
+        expected_ids = [
+            'checkboxes_1',
+            'checkboxes_2',
+            'checkboxes_3',
+            'alphacheckboxes_1',
+            'alphacheckboxes_2',
+            'alphacheckboxes_3',
+            'numeric_multiple_checkboxes_1',
+            'numeric_multiple_checkboxes_2',
+            'numeric_multiple_checkboxes_3',
+        ]
+        for id_suffix in expected_ids:
+            expected_str = 'id="id_{id_suffix}"'.format(id_suffix=id_suffix)
+            assert html.count(expected_str) == 1
+
